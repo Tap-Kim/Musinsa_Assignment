@@ -56,9 +56,10 @@
   justify-content: space-around;
 }
 .App .main_comp .header_con .filter_con .item{
-  min-width: 40px;
+  cursor: pointer;
+  min-width: 100px;
   max-width: 150px;
-  height: 20px;
+  height: 40px;
   padding: 10px;
   
   text-align: center;
@@ -73,10 +74,30 @@
   text-overflow: ellipsis;
 }
 
+.App .main_comp .header_con .filter_con .item_active{
+  cursor: pointer;
+  min-width: 100px;
+  max-width: 150px;
+  height: 40px;
+  padding: 10px;
+  
+  text-align: center;
+  border: 1px solid;
+  border-radius: 10px;
+  border-color: #b2b2b2;
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: white;
+  font-weight: bold;
+  font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  background: #323232;
+}
+
 /* 리스트 영역 */
 .App .main_comp .list_con {
   height: 100%;
-  
 }
 
 .App .main_comp .list_con .empty{
@@ -128,6 +149,7 @@
   width: 100%;
   vertical-align: middle;
   display: flex;
+  margin: 7px 0px 7px 0px;
   
   font-weight: normal;
   font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;

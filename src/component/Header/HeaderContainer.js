@@ -1,9 +1,10 @@
 import React from 'react'
 import HeaderPresenter from './HeaderPresenter'
 
-function HeaderContainer() {
+function HeaderContainer(props) {
     
-    return <HeaderPresenter />
+    const propParams = {...props}
+    return <HeaderPresenter {...propParams}/>
 }
 
 export default HeaderContainer
