@@ -170,6 +170,7 @@
 }
 
 .App .main_comp .list_con .item .del_box{
+  cursor: pointer;
   width: 100px;
   height: 30px;
   margin-right: 5px;
@@ -186,4 +187,16 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.spinner {
+  animation: spin 2s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }

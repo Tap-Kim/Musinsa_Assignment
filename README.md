@@ -7,7 +7,10 @@
 
 - 실행 방법
     ```
+    npm i
+
     npm start
+    
     http://localhost:3000/
     ```
  - 위 library 선정이유

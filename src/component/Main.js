@@ -9,37 +9,88 @@ function Main() {
     const [orginList, setOriginList] = useState([])
     const [list, setList] = useState([])
     const [toggleInfo, setToggleInfo] = useState(TOGGLE_INIT)
-    const [pageInfo, setPageInfo] = useState({ page: 2, pageSize: 10 })
+    const [loading, setLoading] = useState(false)
+    const [pageInfo, setPageInfo] = useState({ page: 1, pageSize: 10 })
+
+    // 최초 접근
     useEffect(() => {
-        // callList(pageInfo).then(response => {
-        //     setList(response)
-        //     setOriginList(response)
-        // })
-        setList(testData)
-        setOriginList(testData)
-        return () => { }
+        callList(pageInfo).then(response => {
+            setList(response)
+            setOriginList(response)
+        })
     }, [])
 
+    // 로딩 변수로 스크롤 이벤트 활성화
+    useEffect(() => {
+        window.addEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, [loading])
+
+    // 필터 적용
     useEffect(() => {
         if (!isEmpty(orginList)) {
-            const { alive, female, noTvSeries, reset } = toggleInfo;
-            let useList = [];
-            
-            // 리셋 활성화 또는 모든 필터를 제거했을 시
-            if (reset.active || (!alive.active && !female.active && !noTvSeries.active)) {
-                useList = [...orginList]
-            } else {
-                useList = [...orginList].filter(item => {
-                    return (alive.active && !isEmpty(item.died)) || // 생존인물만
-                        (female.active && item.gender === "Female") ||  // 여자
-                        (noTvSeries.active && (item.tvSeries.length === 0 || (item.tvSeries.length === 1 && isEmpty(item.tvSeries[0])))) // tvSeries 없음
-                })
-            }
-
+            const useList = handleFilterList()
             setList(useList)
+
             return () => useList
         }
     }, [toggleInfo])
+
+    const handleFilterList = () => {
+        const { alive, female, noTvSeries, reset } = toggleInfo;
+        let useList = [];
+
+        // 리셋 활성화 또는 모든 필터를 제거했을 시
+        if (reset.active || (!alive.active && !female.active && !noTvSeries.active)) {
+            useList = [...orginList]
+        } else {
+            useList = [...orginList].filter(item => {
+                let check = []
+                if (toggleInfo.alive.active) {
+                    check.push(isEmpty(item.died))
+                }
+                if (toggleInfo.female.active) {
+                    check.push(item.gender === "Female")
+                }
+                if (toggleInfo.noTvSeries.active) {
+                    check.push(item.tvSeries.length === 0 || (item.tvSeries.length === 1 && isEmpty(item.tvSeries[0])))
+                }
+                return check.every(c => c)
+            })
+        }
+
+        return useList
+    }
+
+     // 스크롤 이벤트 핸들러
+     const handleScroll = () => {
+        const scrollHeight = document.documentElement.scrollHeight;
+        const scrollTop = document.documentElement.scrollTop;
+        const clientHeight = document.documentElement.clientHeight;
+        if (scrollTop + clientHeight >= scrollHeight && loading === false) {
+            // bottom 체크시 api 호출
+            scrollFetch();
+        }
+    };
+
+    const scrollFetch = () => {
+        const _pageInfo = {...pageInfo, page: pageInfo.page + 1}
+        setLoading(true)
+
+        // 로딩시 클릭 이벤트 disabled
+        document.getElementById('main').style.pointerEvents = 'none';
+        
+        callList(_pageInfo).then(response => {
+            setList([...list, ...response])
+            setOriginList([...orginList, ...response])
+            setPageInfo(_pageInfo)
+            setLoading(false)
+            document.getElementById('main').style.pointerEvents = 'auto';
+        })
+
+    }
 
     // 토글 필터
     const handleToggleBtn = (type) => {
@@ -55,201 +106,31 @@ function Main() {
         setToggleInfo(tmp)
     }
 
-    const headerProps = {
-        toggleInfo, handleToggleBtn,
+    // 아이템 삭제
+    const handleItemDel = (index) => {
+        let _list = [...list]
+        _list.splice(index, 1)
+        setList(_list)
     }
-    const listProps = {
-        list
-    }
+
+    const headerProps = { toggleInfo, handleToggleBtn }
+    const listProps = { list, handleItemDel }
+
     return (
-        <div className="main_comp">
-            {list.length} 개
-            <Header {...headerProps} />
-            <ListContainer {...listProps}/>
-        </div>
+        <>
+            <div className="main_comp" id="main" style={{opacity: loading ? 0.3 : 1}}>
+                <Header {...headerProps} />
+                <ListContainer {...listProps} />
+            </div>
+            {loading &&
+                <div style={{ position: 'fixed', top: '40%', left: '42%' }}>
+                    <div className="spinner">
+                        <i className="fas fa-spinner fa-10x"></i>
+                    </div>
+                </div>
+            }
+        </>
     )
 }
 
 export default Main;
-
-const testData = 
-[{
-    aliases: ['The Daughter of the Dusk'],
-    allegiances: [],
-    books: ['https://www.anapioficeandfire.com/api/books/5'],
-    born: "",
-    culture: "Braavosi",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/1",
-},
-{
-    aliases: ['Hodor'],
-    allegiances: ['https://www.anapioficeandfire.com/api/houses/362'],
-    books: ['https://www.anapioficeandfire.com/api/books/1', 'https://www.anapioficeandfire.com/api/books/2', 'https://www.anapioficeandfire.com/api/books/3', 'https://www.anapioficeandfire.com/api/books/5', 'https://www.anapioficeandfire.com/api/books/8'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Male",
-    mother: "",
-    name: "Walder",
-    playedBy: ['Kristian Nairn'],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: ['Season 1', 'Season 2', 'Season 3', 'Season 4', 'Season 6'],
-    url: "https://www.anapioficeandfire.com/api/characters/2",
-},
-{
-    aliases: ['Lamprey'],
-    allegiances: ['https://www.anapioficeandfire.com/api/houses/15'],
-    books: ['https://www.anapioficeandfire.com/api/books/3'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Male",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/3",
-},
-{
-    aliases: ['The Merling Queen'],
-    allegiances: [],
-    books:['https://www.anapioficeandfire.com/api/books/5', 'https://www.anapioficeandfire.com/api/books/8'],
-    born: "",
-    culture: "Braavosi",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/4",
-},
-{
-    aliases: ['Old Crackbones'],
-    allegiances: [],
-    books: ['https://www.anapioficeandfire.com/api/books/5'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Male",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/5",
-},
-{
-    aliases: ['The Poetess'],
-    allegiances: [],
-    books: ['https://www.anapioficeandfire.com/api/books/5'],
-    born: "",
-    culture: "Braavosi",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/6",
-},
-{
-    aliases: ['Porridge'],
-    allegiances: ['https://www.anapioficeandfire.com/api/houses/15'],
-    books: ['https://www.anapioficeandfire.com/api/books/3'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/7",
-},
-{
-    aliases: ['Quickfinger'],
-    allegiances: ['https://www.anapioficeandfire.com/api/houses/23'],
-    books: ['https://www.anapioficeandfire.com/api/books/6'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Male",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: [''],
-    url: "https://www.anapioficeandfire.com/api/characters/8",
-},
-{
-    aliases: ["the Sailor's Wife"],
-    allegiances: [],
-    books: ['https://www.anapioficeandfire.com/api/books/5'],
-    born: "",
-    culture: "",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: ['2'],
-    url: "https://www.anapioficeandfire.com/api/characters/9",
-},
-{
-    aliases: ['The Veiled Lady'],
-    allegiances: [],
-    books: ['https://www.anapioficeandfire.com/api/books/5'],
-    born: "",
-    culture: "Braavosi",
-    died: "",
-    father: "",
-    gender: "Female",
-    mother: "",
-    name: "",
-    playedBy: [''],
-    povBooks: [],
-    spouse: "",
-    titles: [''],
-    tvSeries: ['1'],
-    url: "https://www.anapioficeandfire.com/api/characters/10",
-}]
