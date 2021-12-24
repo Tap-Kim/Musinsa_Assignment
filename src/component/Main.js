@@ -10,15 +10,10 @@ function Main() {
     const [list, setList] = useState([])
     const [toggleInfo, setToggleInfo] = useState(TOGGLE_INIT)
     const [loading, setLoading] = useState(false)
-    const [pageInfo, setPageInfo] = useState({ page: 1, pageSize: 10 })
+    const [pageInfo, setPageInfo] = useState({ page: 0, pageSize: 10 })
 
     // 최초 접근
-    useEffect(() => {
-        callList(pageInfo).then(response => {
-            setList(response)
-            setOriginList(response)
-        })
-    }, [])
+    useEffect(() => { handleGetList() }, [])
 
     // 로딩 변수로 스크롤 이벤트 활성화
     useEffect(() => {
@@ -37,6 +32,22 @@ function Main() {
             return () => useList
         }
     }, [toggleInfo])
+
+    const handleGetList = () => {
+        const _pageInfo = {...pageInfo, page: pageInfo.page + 1}
+        setLoading(true)
+
+        // 로딩시 클릭 이벤트 disabled
+        document.getElementById('main').style.pointerEvents = 'none';
+        
+        callList(_pageInfo).then(response => {
+            setList([...list, ...response])
+            setOriginList([...orginList, ...response])
+            setPageInfo(_pageInfo)
+            setLoading(false)
+            document.getElementById('main').style.pointerEvents = 'auto';
+        })
+    }
 
     const handleFilterList = () => {
         const { alive, female, noTvSeries, reset } = toggleInfo;
@@ -71,26 +82,9 @@ function Main() {
         const clientHeight = document.documentElement.clientHeight;
         if (scrollTop + clientHeight >= scrollHeight && loading === false) {
             // bottom 체크시 api 호출
-            scrollFetch();
+            handleGetList()
         }
     };
-
-    const scrollFetch = () => {
-        const _pageInfo = {...pageInfo, page: pageInfo.page + 1}
-        setLoading(true)
-
-        // 로딩시 클릭 이벤트 disabled
-        document.getElementById('main').style.pointerEvents = 'none';
-        
-        callList(_pageInfo).then(response => {
-            setList([...list, ...response])
-            setOriginList([...orginList, ...response])
-            setPageInfo(_pageInfo)
-            setLoading(false)
-            document.getElementById('main').style.pointerEvents = 'auto';
-        })
-
-    }
 
     // 토글 필터
     const handleToggleBtn = (type) => {
