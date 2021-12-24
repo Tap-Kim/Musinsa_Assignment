@@ -17,8 +17,8 @@ function ListItemPresenter(props) {
                     <span>생존여부:{props.died}</span>&nbsp;&nbsp;
                     <span>성별:{props.gender}</span>&nbsp;&nbsp;
                     <span>시리즈:{props.tvSeries}</span>
-                </div> */}
-            
+                </div>
+             */}
                 <div className="top">
                     name: {name} &nbsp;&nbsp;aliases: {aliases}
                 </div>

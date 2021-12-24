@@ -26,7 +26,7 @@ function Main() {
     // 필터 적용
     useEffect(() => {
         if (!isEmpty(orginList)) {
-            const useList = handleFilterList()
+            const useList = handleFilterList(orginList)
             setList(useList)
 
             return () => useList
@@ -41,7 +41,7 @@ function Main() {
         document.getElementById('main').style.pointerEvents = 'none';
         
         callList(_pageInfo).then(response => {
-            setList([...list, ...response])
+            setList(handleFilterList([...list, ...response]))
             setOriginList([...orginList, ...response])
             setPageInfo(_pageInfo)
             setLoading(false)
@@ -49,7 +49,7 @@ function Main() {
         })
     }
 
-    const handleFilterList = () => {
+    const handleFilterList = (orginList) => {
         const { alive, female, noTvSeries, reset } = toggleInfo;
         let useList = [];
 
@@ -80,7 +80,7 @@ function Main() {
         const scrollHeight = document.documentElement.scrollHeight;
         const scrollTop = document.documentElement.scrollTop;
         const clientHeight = document.documentElement.clientHeight;
-        if (scrollTop + clientHeight >= scrollHeight && loading === false) {
+        if (Math.round(scrollTop + clientHeight) >= scrollHeight && loading === false) { // 모바일 모드시 scrollTop + clientHeight 높이 값이 충족되지 않아 반올림처리 
             // bottom 체크시 api 호출
             handleGetList()
         }
