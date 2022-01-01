@@ -1,13 +1,12 @@
 import React from 'react'
 import { isEmpty } from '../../utils/validation'
 
-function ListItemPresenter(props) {
-    let { name = "", aliases = [], title = [], books = [], tvSeries = [], handleItemDel, i } = props
-    name = !isEmpty(props.name) ? props.name : ""
-    aliases = !isEmpty(props.aliases) ? props.aliases : ""
-    title = !isEmpty(props.title) ? props.title : ""
-    books = !isEmpty(props.books) ? props.books.length : 0
-    tvSeries = !isEmpty(props.tvSeries) && (props.tvSeries.length > 0 && !isEmpty(props.tvSeries[0])) ? props.tvSeries.length : 0
+function ListItemPresenter({ name = "", aliases = [], title = [], books = [], tvSeries = [], handleItemDel, i }) {
+    name = !isEmpty(name) ? name : ""
+    aliases = !isEmpty(aliases) ? aliases : ""
+    title = !isEmpty(title) ? title : ""
+    books = !isEmpty(books) ? books.length : 0
+    tvSeries = !isEmpty(tvSeries) && (tvSeries.length > 0 && !isEmpty(tvSeries[0])) ? tvSeries.length : 0
 
     return (
         <div className="item">
@@ -34,4 +33,4 @@ function ListItemPresenter(props) {
     )
 }
 
-export default ListItemPresenter
+export default React.memo(ListItemPresenter)

@@ -1,130 +1,159 @@
-import React, { useEffect, useState } from 'react'
-import Header from './Header/HeaderContainer';
-import ListContainer from './Main/ListContainer';
-import { callList } from '../api/Api'
-import { isEmpty } from '../utils/validation';
-import { TOGGLE_INIT } from '../utils/Enums';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Header from "./Header/HeaderContainer";
+import { callList } from "../api/Api";
+import { isEmpty } from "../utils/validation";
+import { TEST_DATA, TOGGLE_INIT } from "../utils/Enums";
+import ListItemPresenter from "./Main/ListItemPresenter";
 
 function Main() {
-    const [orginList, setOriginList] = useState([])
-    const [list, setList] = useState([])
-    const [toggleInfo, setToggleInfo] = useState(TOGGLE_INIT)
-    const [loading, setLoading] = useState(false)
-    const [pageInfo, setPageInfo] = useState({ page: 0, pageSize: 10 })
+  const [orginList, setOriginList] = useState([]);
+  const [list, setList] = useState([]);
+  const [toggleInfo, setToggleInfo] = useState(TOGGLE_INIT);
+  const [loading, setLoading] = useState(false);
+  const [pageInfo, setPageInfo] = useState({ page: 0, pageSize: 10 });
 
-    // 최초 접근
-    useEffect(() => { handleGetList() }, [])
+  const loader = useRef(null);
+  // 최초 접근
+  useEffect(() => handleGetList(), []);
 
-    // 로딩 변수로 스크롤 이벤트 활성화
-    useEffect(() => {
-        window.addEventListener("scroll", handleScroll);
-        return () => {
-            window.removeEventListener("scroll", handleScroll);
-        };
-    }, [loading])
+  // loader값으로 하단 인지 -> 무한 스크롤 페이징처리 동작
+  useEffect(() => {
+    const option = { root: null, rootMain: "20px", threshold: 0 };
+    const io = new IntersectionObserver(handelObserver, option);
 
-    // 필터 적용
-    useEffect(() => {
-        if (!isEmpty(orginList)) {
-            const useList = handleFilterList(orginList)
-            setList(useList)
+    if (loader.current) {
+      io.observe(loader.current);
+    }
+  }, [loader]);
 
-            return () => useList
+  // 필터 적용
+  useEffect(() => {
+    if (!isEmpty(orginList)) {
+      const useList = handleFilterList(orginList);
+      setList(useList);
+
+      return () => useList;
+    }
+  }, [toggleInfo]);
+
+  const handelObserver = useCallback((entries) => {
+    const target = entries[0];
+    if (target.isIntersecting) {
+      handleGetList();
+    }
+  }, []);
+
+  const handleGetList = useCallback(() => {
+    const _pageInfo = { ...pageInfo, page: pageInfo.page + 1 };
+    setLoading(true);
+
+    // 로딩시 클릭 이벤트 disabled
+    document.getElementById("main").style.pointerEvents = "none";
+
+    // 테스트 API
+    // callList(_pageInfo).then(response => {
+    //     setList(handleFilterList([...list, ...response]))
+    //     setOriginList([...orginList, ...response])
+    //     setPageInfo(_pageInfo)
+    //     setLoading(false)
+    //     document.getElementById('main').style.pointerEvents = 'auto';
+    // })
+
+    // 테스트 DATA
+    setTimeout(() => {
+      setList((prev) => handleFilterList([...prev, ...TEST_DATA]));
+      setOriginList((prev) => [...prev, ...TEST_DATA]);
+      setPageInfo(_pageInfo);
+      setLoading(false);
+      document.getElementById("main").style.pointerEvents = "auto";
+    }, 500);
+  }, [list, orginList, pageInfo]);
+
+  const handleFilterList = (orginList) => {
+    const { alive, female, noTvSeries, reset } = toggleInfo;
+    let useList = [];
+
+    // 리셋 활성화 또는 모든 필터를 제거했을 시
+    if (
+      reset.active ||
+      (!alive.active && !female.active && !noTvSeries.active)
+    ) {
+      useList = [...orginList];
+    } else {
+      useList = [...orginList].filter((item) => {
+        let check = [];
+        if (toggleInfo.alive.active) {
+          check.push(isEmpty(item.died));
         }
-    }, [toggleInfo])
-
-    const handleGetList = () => {
-        const _pageInfo = {...pageInfo, page: pageInfo.page + 1}
-        setLoading(true)
-
-        // 로딩시 클릭 이벤트 disabled
-        document.getElementById('main').style.pointerEvents = 'none';
-        
-        callList(_pageInfo).then(response => {
-            setList(handleFilterList([...list, ...response]))
-            setOriginList([...orginList, ...response])
-            setPageInfo(_pageInfo)
-            setLoading(false)
-            document.getElementById('main').style.pointerEvents = 'auto';
-        })
+        if (toggleInfo.female.active) {
+          check.push(item.gender === "Female");
+        }
+        if (toggleInfo.noTvSeries.active) {
+          check.push(
+            item.tvSeries.length === 0 ||
+              (item.tvSeries.length === 1 && isEmpty(item.tvSeries[0]))
+          );
+        }
+        return check.every((c) => c);
+      });
     }
 
-    const handleFilterList = (orginList) => {
-        const { alive, female, noTvSeries, reset } = toggleInfo;
-        let useList = [];
+    return useList;
+  };
 
-        // 리셋 활성화 또는 모든 필터를 제거했을 시
-        if (reset.active || (!alive.active && !female.active && !noTvSeries.active)) {
-            useList = [...orginList]
-        } else {
-            useList = [...orginList].filter(item => {
-                let check = []
-                if (toggleInfo.alive.active) {
-                    check.push(isEmpty(item.died))
-                }
-                if (toggleInfo.female.active) {
-                    check.push(item.gender === "Female")
-                }
-                if (toggleInfo.noTvSeries.active) {
-                    check.push(item.tvSeries.length === 0 || (item.tvSeries.length === 1 && isEmpty(item.tvSeries[0])))
-                }
-                return check.every(c => c)
-            })
-        }
+  // 토글 필터
+  const handleToggleBtn = useCallback(
+    (type) => {
+      let tmp = Object.assign({}, toggleInfo);
+      if (type === "reset") {
+        Object.entries(tmp).forEach((t) => {
+          tmp[t[0]] = { ...t[1], active: false };
+        });
+      } else {
+        tmp[type].active = !toggleInfo[type].active;
+      }
 
-        return useList
-    }
+      setToggleInfo(tmp);
+    },
+    [toggleInfo]
+  );
 
-     // 스크롤 이벤트 핸들러
-     const handleScroll = () => {
-        const scrollHeight = document.documentElement.scrollHeight;
-        const scrollTop = document.documentElement.scrollTop;
-        const clientHeight = document.documentElement.clientHeight;
-        if (Math.round(scrollTop + clientHeight) >= scrollHeight && loading === false) { // 모바일 모드시 scrollTop + clientHeight 높이 값이 충족되지 않아 반올림처리 
-            // bottom 체크시 api 호출
-            handleGetList()
-        }
-    };
+  // 아이템 삭제
+  // 메모이징이 안되는 이유가 아마 index를 props로 넘겨서 삭제할 떄마다 item props의 i값이 달라져서 메모이징이 안되는 듯함
+  // 고유 값을 넘긴다면 메모이징이 될것으로 판단
+  const handleItemDel = useCallback(
+    (index) => setList((prev) => prev.filter((d, i) => i !== index)),
+    []
+  );
 
-    // 토글 필터
-    const handleToggleBtn = (type) => {
-        let tmp = Object.assign({}, toggleInfo)
-        if (type === "reset") {
-            Object.entries(tmp).forEach(t => {
-                tmp[t[0]] = { ...t[1], active: false }
-            });
-        } else {
-            tmp[type].active = !toggleInfo[type].active
-        }
+  const headerProps = { toggleInfo, handleToggleBtn };
 
-        setToggleInfo(tmp)
-    }
-
-    // 아이템 삭제
-    const handleItemDel = (index) => {
-        let _list = [...list]
-        _list.splice(index, 1)
-        setList(_list)
-    }
-
-    const headerProps = { toggleInfo, handleToggleBtn }
-    const listProps = { list, handleItemDel }
-
-    return (
-        <>
-            <div className="main_comp" id="main" style={{opacity: loading ? 0.3 : 1}}>
-                <Header {...headerProps} />
-                <ListContainer {...listProps} />
-            </div>
-            {loading &&
-                <div style={{ position: 'fixed', top: '40%', left: '42%' }}>
-                    <div className="spinner">
-                        <i className="fas fa-spinner fa-10x"></i>
-                    </div>
-                </div>
+  return (
+    <>
+      <div
+        className="main_comp"
+        id="main"
+        style={{ opacity: loading ? 0.3 : 1 }}
+      >
+        <Header {...headerProps} />
+        <div className="list_con">
+            {
+                list.length > 0 ?
+                    list.map((item, i) => <ListItemPresenter key={`key_${i}`} {...{ ...item, handleItemDel, i }} />)
+                    : <div className="empty">검색 결과가 없습니다.</div>
             }
-        </>
-    )
+        </div>
+      </div>
+      {loading && (
+        <div style={{ position: "fixed", top: "40%", left: "42%" }}>
+          <div className="spinner">
+            <i className="fas fa-spinner fa-10x"></i>
+          </div>
+        </div>
+      )}
+      <div ref={loader} />
+    </>
+  );
 }
 
 export default Main;
